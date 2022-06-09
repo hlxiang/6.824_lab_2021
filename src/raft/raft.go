@@ -21,7 +21,7 @@ import (
 //	"bytes"
 	"sync"
 	"sync/atomic"
-
+    "time"
 //	"6.824/labgob"
 	"6.824/labrpc"
 )
@@ -50,6 +50,16 @@ type ApplyMsg struct {
 	SnapshotIndex int
 }
 
+type RaftState string
+const (
+    Follower RaftState = "Follower"
+    Candidate = "Candidate"
+    Leader = "Leader"
+)
+
+type Log struct {
+
+}
 //
 // A Go object implementing a single Raft peer.
 //
@@ -62,8 +72,24 @@ type Raft struct {
 
 	// Your data here (2A, 2B, 2C).
 	// Look at the paper's Figure 2 for a description of what
-	// state a Raft server must maintain.
+	// state a Raft server must maintain
+    state            RaftState // 记录每一个server的状态
+    //appendEntryCh    chan *Entry
+    heartBeat        time.Duration
+    electionTime     time.Time
 
+    // Persistent state on all servers
+    currentTerm int
+    voteFor int
+    Log []*Log
+
+    // Volatile state on all servers
+    commitIndex int
+    lastApplied int
+
+    // Volatile state on leaders
+    nextIndex []int
+    matchIndex []int
 }
 
 // return currentTerm and whether this server
