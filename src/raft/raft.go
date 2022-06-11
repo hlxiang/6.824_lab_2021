@@ -95,11 +95,14 @@ type Raft struct {
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
-
+    rf.mu.Lock()
+    defer rf.mu.Unlock()
 	var term int
 	var isleader bool
 	// Your code here (2A).
-	return term, isleader
+    term = rf.currentTerm
+    isleader = rf.state == Leader
+    return term, isleader
 }
 
 //
@@ -169,6 +172,10 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 //
 type RequestVoteArgs struct {
 	// Your data here (2A, 2B).
+    Term int
+    CandidatedId int
+    LastLogIndex int
+    LastLogTerm  int
 }
 
 //
@@ -177,6 +184,8 @@ type RequestVoteArgs struct {
 //
 type RequestVoteReply struct {
 	// Your data here (2A).
+    Term int
+    VoteGranted bool
 }
 
 //
@@ -275,7 +284,14 @@ func (rf *Raft) ticker() {
 		// Your code here to check if a leader election should
 		// be started and to randomize sleeping time using
 		// time.Sleep().
+        time.Sleep(rf.heartBeat)
+        rf.mu.Lock()
+        defer rf.mu.Unlock()
+        // todo leader AE
 
+        if time.Now().After(rf.electionTime) {
+            rf.leaderElection()
+        }
 	}
 }
 
@@ -298,8 +314,14 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here (2A, 2B, 2C).
+    DPrintf("me : %d init \n", me);
+	rf.state = Follower
+    rf.currentTerm = 0
+    rf.voteFor = -1
+    rf.heartBeat = 50 * time.Millisecond
+    rf.resetElectionTimer()
 
-	// initialize from state persisted before a crash
+    // initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 
 	// start ticker goroutine to start elections
