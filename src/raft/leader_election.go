@@ -12,21 +12,30 @@ func (rf *Raft) resetElectionTimer() {
     rf.electionTime = t.Add(electionTimeout)
 }
 
+func (rf *Raft) setNewTerm(term int) {
+    if term > rf.currentTerm || rf.currentTerm == 0 {
+        rf.state = Follower
+        rf.currentTerm = term
+        rf.votedFor = -1
+        DPrintf("[%d]: set term %v\n", rf.me, rf.currentTerm)
+    }
+}
+
 func (rf *Raft) leaderElection() {
     rf.currentTerm++
     rf.state = Candidate
-    rf.voteFor = rf.me
+    rf.votedFor = rf.me
     rf.resetElectionTimer() // 每次切换为candidate/收到AE/收到RequeVote时都有重置选举超时定时器
 
     // 准备发RequestVote RPC
      voteCnter := 1
-    // LastLog := rf.log.lastLog()
+    lastLog := rf.log.lastLog()
     DPrintf("[%v]: start leader election, term %d\n", rf.me, rf.currentTerm)
     args := RequestVoteArgs {
         Term :  rf.currentTerm,
-        CandidatedId : rf.me,
-        // LastLogIndex : ?
-        // LastLogTerm : ?
+        CandidateId : rf.me,
+        LastLogIndex : lastLog.Index,
+        LastLogTerm :  lastLog.Term,
     }
 
     var becomeLeader sync.Once
@@ -36,10 +45,6 @@ func (rf *Raft) leaderElection() {
         }
         go rf.candidateRequestVote(serverId, &args, &voteCnter, &becomeLeader)
     }
-}
-
-func (rf *Raft) candidateRequestVote(serverId int, args *RequestVoteArgs, voteCnter *int, becomeLeader *sync.Once) {
-
 }
 
 
