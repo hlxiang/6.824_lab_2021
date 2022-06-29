@@ -211,7 +211,7 @@ func (rf *Raft) killed() bool {
 // The ticker go routine starts a new election if this peer hasn't received
 // heartsbeats recently.
 func (rf *Raft) ticker() {
-	for rf.killed() == false {
+	for rf.killed() == false { // 此goroutine是由for循环实现，起到定时器作用
 
 		// Your code here to check if a leader election should
 		// be started and to randomize sleeping time using
@@ -221,7 +221,7 @@ func (rf *Raft) ticker() {
         defer rf.mu.Unlock()
         // todo leader AE
 
-        if time.Now().After(rf.electionTime) {
+        if time.Now().After(rf.electionTime) { // 时间周期到检查rf.electionTime,若超时则发起选举
             rf.leaderElection()
         }
 	}

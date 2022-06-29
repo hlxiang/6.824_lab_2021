@@ -49,7 +49,7 @@ func (rf *Raft) RequestVote(args *RequestVoteArgs, reply *RequestVoteReply) {
     if (rf.votedFor == -1 || rf.votedFor == args.CandidateId) && upToDate {
         reply.VoteGranted = true
         rf.votedFor = args.CandidateId
-        rf.resetElectionTimer()
+        rf.resetElectionTimer() // 投完票,follower重置选举超时timer
         DPrintf("[%v]: term %v vote %v", rf.me, rf.currentTerm, rf.votedFor)
     } else {
         reply.VoteGranted = false
@@ -101,7 +101,7 @@ func (rf *Raft) candidateRequestVote(serverId int, args *RequestVoteArgs, voteCn
         return
     }
 
-    // 接收rv rpc,并处理:有效则计数加加,准备成为leader
+    // 接收rv rpc,并处理:有效则计数++,准备成为leader
     rf.mu.Lock()
     defer rf.mu.Unlock()
     if reply.Term > args.Term { // 投票人任期更大,竞选失败
