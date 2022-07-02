@@ -57,12 +57,12 @@ func (rf *Raft) leaderSendEntries(serverId int, args *AppendEntriesArgs) {
 }
 
 func (rf *Raft) sendAppendEntries(serverId int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
-    ok := rf.peers[serverId].Call("Raft.AppendEntriesResp", args, reply)
+    ok := rf.peers[serverId].Call("Raft.AppendEntries", args, reply)
     return ok
 }
 
-// server收到AE RPC的处理逻辑
-func (rf *Raft) AppendEntriesResp(args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
+// server收到AE RPC的处理逻辑 AppendEntriesResp 这个函数rpc流程不能识别，要用AppendEntries
+func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
     rf.mu.Lock()
     defer rf.mu.Unlock()
 

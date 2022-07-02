@@ -22,6 +22,7 @@ func (rf *Raft) setNewTerm(term int) {
 }
 
 func (rf *Raft) leaderElection() {
+    DPrintf("[%v]: start leader election, term %d, enter!\n", rf.me, rf.currentTerm)
     rf.currentTerm++
     rf.state = Candidate
     rf.votedFor = rf.me

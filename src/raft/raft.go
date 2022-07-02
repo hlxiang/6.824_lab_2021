@@ -92,13 +92,16 @@ type Raft struct {
 // return currentTerm and whether this server
 // believes it is the leader.
 func (rf *Raft) GetState() (int, bool) {
+    // DPrintf("me : %d get state 1 \n",   rf.me);
     rf.mu.Lock()
-    defer rf.mu.Unlock()
+    //defer rf.mu.Unlock()
 	var term int
 	var isleader bool
 	// Your code here (2A).
     term = rf.currentTerm
     isleader = rf.state == Leader
+    rf.mu.Unlock()
+    // DPrintf("me : %d get state done \n", rf.me);
     return term, isleader
 }
 
@@ -211,19 +214,23 @@ func (rf *Raft) killed() bool {
 // The ticker go routine starts a new election if this peer hasn't received
 // heartsbeats recently.
 func (rf *Raft) ticker() {
+    DPrintf("[%v]:ticker enter!\n", rf.me)
 	for rf.killed() == false { // 此goroutine是由for循环实现，起到定时器作用
 
+        // DPrintf("[%v]: ticker 2!\n", rf.me)
 		// Your code here to check if a leader election should
 		// be started and to randomize sleeping time using
 		// time.Sleep().
         time.Sleep(rf.heartBeat) // 每个server启动一个定时器 goroutine
         rf.mu.Lock()
-        defer rf.mu.Unlock()
+        // defer rf.mu.Unlock()
         // todo leader AE
 
         if time.Now().After(rf.electionTime) { // 时间周期到检查rf.electionTime,若超时则发起选举
+            DPrintf("[%v]:ticker 3 start leaderElection!\n", rf.me)
             rf.leaderElection()
         }
+        rf.mu.Unlock()
 	}
 }
 
@@ -253,6 +260,12 @@ func Make(peers []*labrpc.ClientEnd, me int,
     rf.heartBeat = 50 * time.Millisecond
     rf.resetElectionTimer()
 
+    rf.log = makeEmptyLog()
+    rf.log.append(Entry{-1, 0, 0})
+    rf.commitIndex = 0
+    rf.lastApplied = 0
+    rf.nextIndex = make([]int, len(rf.peers))
+    rf.matchIndex = make([]int, len(rf.peers))
     // initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
 

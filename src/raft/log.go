@@ -6,7 +6,7 @@ import (
 
 type Log struct {
     Entries []Entry
-    Index0 int
+    Index0 int  // 干嘛用呀
 }
 
 type Entry struct {
@@ -29,4 +29,20 @@ func (l *Log) at(idx int) *Entry {
 
 func (l *Log) len() int {
     return len(l.Entries)
+}
+
+func (l *Log) truncate(idx int) {
+    l.Entries = l.Entries[:idx]
+}
+
+func (l *Log) slice(idx int) []Entry {
+    return l.Entries[idx:]
+}
+
+func makeEmptyLog() Log {
+    log := Log {
+        Entries: make([]Entry, 0),
+        Index0: 0,
+    }
+    return log
 }
