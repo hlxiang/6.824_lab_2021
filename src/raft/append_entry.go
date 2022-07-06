@@ -36,8 +36,10 @@ func (rf *Raft) appendEntries(heartbeat bool) {
 }
 
 func (rf *Raft) leaderSendEntries(serverId int, args *AppendEntriesArgs) {
+    DPrintf("[%v]: %v send append entry rpc start!\n", rf.me, serverId)
     reply := AppendEntriesReply{}
     ok := rf.sendAppendEntries(serverId, args, &reply)
+    DPrintf("[%v]: %v send append entry rpc end, then to process this AE reply!\n", rf.me, serverId)
     if !ok {
         return
     }
@@ -62,17 +64,18 @@ func (rf *Raft) sendAppendEntries(serverId int, args *AppendEntriesArgs, reply *
 }
 
 // server收到AE RPC的处理逻辑 AppendEntriesResp 这个函数rpc流程不能识别，要用AppendEntries
-func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) bool {
+func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply) {
+    DPrintf("[%v]: recv append entry rpc\n", rf.me)
     rf.mu.Lock()
     defer rf.mu.Unlock()
 
     reply.Success = false
     reply.Term = rf.currentTerm
     if args.Term < rf.currentTerm {
-        return false
+        return
     } else if args.Term > rf.currentTerm { // 正常在request vote rpc
         rf.setNewTerm(args.Term)
-        return false
+        return
     }
 
     rf.resetElectionTimer()
@@ -83,7 +86,6 @@ func (rf *Raft) AppendEntries(args *AppendEntriesArgs, reply *AppendEntriesReply
     }
 
     reply.Success = true
-    return true
 }
 
 

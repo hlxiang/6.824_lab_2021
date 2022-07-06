@@ -30,11 +30,11 @@ func TestInitialElection2A(t *testing.T) {
 	// is a leader elected?
 	cfg.checkOneLeader()
 
-	fmt.Printf("xhl 2")
+	fmt.Printf("xhl 2\n")
 	// sleep a bit to avoid racing with followers learning of the
 	// election, then check that all peers agree on the term.
 	time.Sleep(50 * time.Millisecond)
-	fmt.Printf("xhl 3")
+	fmt.Printf("xhl 3\n")
 	term1 := cfg.checkTerms()
 	if term1 < 1 {
 		t.Fatalf("term is %v, but should be at least 1", term1)
