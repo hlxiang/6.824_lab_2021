@@ -253,7 +253,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here (2A, 2B, 2C).
-    DPrintf("me : %d init \n", me);
+    DPrintf("[%v] : make init \n", me);
 	rf.state = Follower
     rf.currentTerm = 0
     rf.votedFor = -1
