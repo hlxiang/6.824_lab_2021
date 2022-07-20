@@ -180,13 +180,31 @@ func (rf *Raft) Snapshot(index int, snapshot []byte) {
 // the leader.
 //
 func (rf *Raft) Start(command interface{}) (int, int, bool) {
-	index := -1
-	term := -1
-	isLeader := true
+	rf.mu.Lock()
+    // defer rf.mu.Unlock()
 
+    index := -1
 	// Your code here (2B).
+    rf.mu.Unlock() // 因为GetState方法又会上锁，所以这里不unlock会导致死锁
+    term, isLeader := rf.GetState()
+    rf.mu.Lock()
+    defer rf.mu.Unlock()
+    if isLeader == false {
+        return index, term, isLeader
+    }
 
+    index = rf.log.lastLog().Index + 1
+    log := Entry {
+        Command:    command,
+        Index:      index,
+        Term:       term,
+    }
+    rf.log.append(log)
+    DPrintf("[%v]: term %v Start %v", rf.me, term, log)
+    // rf.mu.Unlock()
+    rf.appendEntries(false)
 
+    // rf.mu.Unlock() 这里会死锁
 	return index, term, isLeader
 }
 

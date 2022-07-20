@@ -58,8 +58,16 @@ func (rf *Raft) leaderSendEntries(serverId int, args *AppendEntriesArgs) {
         return
     } else if reply.Term == rf.currentTerm {
         if reply.Success {
-            DPrintf("[%v]: %v append entry success!\n", rf.me, serverId)
+            match := args.PreLogIndex + len(args.Entries)
+            next := match + 1
+            rf.nextIndex[serverId] = max(rf.nextIndex[serverId], next)
+            rf.matchIndex[serverId] = max(rf.matchIndex[serverId], match)
+            DPrintf("[%v]: %v append entry success! next %v, match %v\n",
+                rf.me, serverId, rf.nextIndex[serverId], rf.matchIndex[serverId])
         } else {
+            if rf.nextIndex[serverId] > 1 {
+                rf.nextIndex[serverId]--
+            }
             DPrintf("[%v]: %v append entry failed!\n", rf.me, serverId)
         }
     }
