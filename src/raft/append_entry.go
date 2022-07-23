@@ -71,6 +71,33 @@ func (rf *Raft) leaderSendEntries(serverId int, args *AppendEntriesArgs) {
             DPrintf("[%v]: %v append entry failed!\n", rf.me, serverId)
         }
     }
+
+    rf.leaderCommitRule()
+}
+
+func (rf *Raft) leaderCommitRule() {
+    // leader rule 4
+    if rf.state != Leader {
+        return
+    }
+
+    for n := rf.commitIndex + 1; n <= rf.log.lastLog().Index; n++ {
+        if rf.log.at(n).Term != rf.currentTerm {  // leader只提交本任期内的entry
+            continue
+        }
+        cnt := 1
+        for serverId := 0; serverId < len(rf.peers); serverId++ {
+            if serverId != rf.me && rf.matchIndex[serverId] >= n {
+                cnt++
+            }
+            if cnt > len(rf.peers) / 2 {
+                rf.commitIndex = n
+                DPrintf("[%v] leader尝试提交 index %v", rf.me, rf.commitIndex)
+                rf.apply()
+                break
+            }
+        }
+    }
 }
 
 func (rf *Raft) sendAppendEntries(serverId int, args *AppendEntriesArgs, reply *AppendEntriesReply) bool {

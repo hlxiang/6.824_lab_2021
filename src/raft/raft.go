@@ -19,6 +19,9 @@ package raft
 
 import (
 //	"bytes"
+    "fmt"
+    //"log"
+    "strings"
 	"sync"
 	"sync/atomic"
     "time"
@@ -87,6 +90,9 @@ type Raft struct {
     // Volatile state on leaders
     nextIndex []int
     matchIndex []int
+
+    applyCh chan ApplyMsg
+    applyCond *sync.Cond
 }
 
 // return currentTerm and whether this server
@@ -271,7 +277,7 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here (2A, 2B, 2C).
-    DPrintf("[%v] : make init \n", me);
+    DPrintf("[%v] : make init \n", me)
 	rf.state = Follower
     rf.currentTerm = 0
     rf.votedFor = -1
@@ -290,6 +296,54 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	// start ticker goroutine to start elections
 	go rf.ticker()
 
-
+    rf.applyCh = applyCh
+    rf.applyCond = sync.NewCond(&rf.mu)
+    go rf.applier()
 	return rf
 }
+
+func (rf *Raft) apply() {
+    rf.applyCond.Broadcast()
+    DPrintf("[%v]: rf.applyCond.Broadcast()", rf.me)
+}
+
+func (rf *Raft) applier() {
+    rf.mu.Lock()
+    defer rf.mu.Unlock()
+
+    for !rf.killed() {
+        // all servers rule 1
+        if rf.commitIndex > rf.lastApplied && rf.log.lastLog().Index > rf.lastApplied {
+            rf.lastApplied++
+            applyMsg := ApplyMsg {
+                CommandValid:   true,
+                Command:        rf.log.at(rf.lastApplied).Command,
+                CommandIndex:   rf.lastApplied,
+            }
+            DPrintf("[%v] : commit %d: %v \n", rf.me, rf.lastApplied, rf.commits())
+            rf.mu.Unlock() // 提前unlock,说明channel有锁，可能会死锁?
+            rf.applyCh <- applyMsg
+            rf.mu.Lock()
+        } else {
+            rf.applyCond.Wait()
+            DPrintf("[%v]: rf.applyCond.Wait()", rf.me)
+        }
+    }
+}
+
+func (rf *Raft) commits() string {
+    nums := []string{}
+    for i := 0; i <= rf.lastApplied; i++ {
+        nums = append(nums, fmt.Sprintf("%4d", rf.log.at(i).Command))
+    }
+    return fmt.Sprintf(strings.Join(nums, "|"))
+}
+
+
+
+
+
+
+
+
+
